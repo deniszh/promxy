@@ -36,6 +36,7 @@ type MetricRelabelConfig struct {
 	// - lowercase
 	// - uppercase
 	Action relabel.Action `yaml:"action,omitempty"`
+	Regex  string         `yaml:"regex,omitempty"`
 }
 
 // ToRelabelConfig simply converts our simplified relabel configuration into the
@@ -75,7 +76,7 @@ func (c *MetricRelabelConfig) ToRelabelConfig() (*relabel.Config, error) {
 			TargetLabel:  c.TargetLabel,
 		}
 	case relabel.Keep:
-		r, err := relabel.NewRegexp(string(c.TargetLabel))
+		r, err := relabel.NewRegexp(string(c.Regex))
 		if err != nil {
 			return nil, err
 		}
@@ -131,8 +132,8 @@ func (c *MetricRelabelConfig) Validate() error {
 			return fmt.Errorf("relabel configuration for %s action requires SourceLabel and TargetLabel", c.Action)
 		}
 	case relabel.Keep:
-		if c.SourceLabel == "" || c.TargetLabel == "" {
-			return fmt.Errorf("relabel configuration for %s action requires SourceLabel and TargetLabel", c.Action)
+		if c.SourceLabel == "" || c.Regex == "" {
+			return fmt.Errorf("relabel configuration for %s action requires SourceLabel and Regex", c.Action)
 		}
 
 	default:
