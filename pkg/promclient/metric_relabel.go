@@ -74,6 +74,12 @@ func (c *MetricRelabelConfig) ToRelabelConfig() (*relabel.Config, error) {
 			SourceLabels: model.LabelNames{c.SourceLabel},
 			TargetLabel:  c.TargetLabel,
 		}
+	case relabel.Keep:
+		cfg = &relabel.Config{
+			Action:       c.Action,
+			Regex:        allRegex,
+			SourceLabels: model.LabelNames{c.SourceLabel},
+		}
 	default:
 		return nil, fmt.Errorf("unsupported action %s", c.Action)
 	}
@@ -120,6 +126,10 @@ func (c *MetricRelabelConfig) Validate() error {
 	case relabel.Lowercase, relabel.Uppercase:
 		if c.SourceLabel == "" || c.TargetLabel == "" {
 			return fmt.Errorf("relabel configuration for %s action requires SourceLabel and TargetLabel", c.Action)
+		}
+	case relabel.Keep:
+		if c.SourceLabel == "" {
+			return fmt.Errorf("relabel configuration for %s action requires SourceLabel", c.Action)
 		}
 
 	default:
