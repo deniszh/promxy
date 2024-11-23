@@ -75,10 +75,13 @@ func (c *MetricRelabelConfig) ToRelabelConfig() (*relabel.Config, error) {
 			TargetLabel:  c.TargetLabel,
 		}
 	case relabel.Keep:
+		r, err := relabel.NewRegexp(string(c.SourceLabel))
+		if err != nil {
+			return nil, err
+		}
 		cfg = &relabel.Config{
-			Action:       c.Action,
-			Regex:        allRegex,
-			SourceLabels: model.LabelNames{c.SourceLabel},
+			Action: c.Action,
+			Regex:  r,
 		}
 	default:
 		return nil, fmt.Errorf("unsupported action %s", c.Action)
