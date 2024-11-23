@@ -75,7 +75,7 @@ func (c *MetricRelabelConfig) ToRelabelConfig() (*relabel.Config, error) {
 			TargetLabel:  c.TargetLabel,
 		}
 	case relabel.Keep:
-		r, err := relabel.NewRegexp(string(c.SourceLabel))
+		r, err := relabel.NewRegexp(string(c.TargetLabel))
 		if err != nil {
 			return nil, err
 		}
@@ -131,8 +131,8 @@ func (c *MetricRelabelConfig) Validate() error {
 			return fmt.Errorf("relabel configuration for %s action requires SourceLabel and TargetLabel", c.Action)
 		}
 	case relabel.Keep:
-		if c.SourceLabel == "" {
-			return fmt.Errorf("relabel configuration for %s action requires SourceLabel", c.Action)
+		if c.SourceLabel == "" || c.TargetLabel == "" {
+			return fmt.Errorf("relabel configuration for %s action requires SourceLabel and TargetLabel", c.Action)
 		}
 
 	default:
