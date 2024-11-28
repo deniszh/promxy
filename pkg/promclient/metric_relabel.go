@@ -47,9 +47,20 @@ func (c *MetricRelabelConfig) ToRelabelConfig() (*relabel.Config, error) {
 
 	switch c.Action {
 	case relabel.Replace:
+		var r relabel.Regexp
+		var err error
+		if c.Regex == "" {
+			r = allRegex
+		} else {
+			r, err = relabel.NewRegexp(c.Regex)
+			if err != nil {
+				logrus.Tracef("invalid regex %q", c.Regex)
+				return nil, err
+			}
+		}
 		cfg = &relabel.Config{
 			Action:       c.Action,
-			Regex:        allRegex,
+			Regex:        r,
 			SourceLabels: model.LabelNames{c.SourceLabel},
 			TargetLabel:  c.TargetLabel,
 			Replacement:  "$1",
@@ -76,13 +87,14 @@ func (c *MetricRelabelConfig) ToRelabelConfig() (*relabel.Config, error) {
 			TargetLabel:  c.TargetLabel,
 		}
 	case relabel.Keep:
-		r, err := relabel.NewRegexp(string(c.Regex))
+		r, err := relabel.NewRegexp(c.Regex)
 		if err != nil {
 			return nil, err
 		}
 		cfg = &relabel.Config{
-			Action: c.Action,
-			Regex:  r,
+			Action:       c.Action,
+			Regex:        r,
+			SourceLabels: model.LabelNames{c.SourceLabel},
 		}
 	default:
 		return nil, fmt.Errorf("unsupported action %s", c.Action)
@@ -252,10 +264,16 @@ func (c *MetricsRelabelClient) Query(ctx context.Context, query string, ts time.
 		return nil, w, err
 	}
 
+	//logrus.Tracef("Query result: " + val.String())
 	// run relabel on the results
 	if err := c.replaceValueLabels(val); err != nil {
 		return nil, nil, err
 	}
+	// remove empty metrics after relabeling
+	if val, err = c.removeEmptyMetrics(val); err != nil {
+		return nil, nil, err
+	}
+	//logrus.Tracef("Query result after relabel: " + val.String())
 	return val, w, nil
 }
 
@@ -287,6 +305,10 @@ func (c *MetricsRelabelClient) QueryRange(ctx context.Context, query string, r v
 
 	// run relabel on the results
 	if err := c.replaceValueLabels(val); err != nil {
+		return nil, nil, err
+	}
+	// remove empty metrics after relabeling
+	if val, err = c.removeEmptyMetrics(val); err != nil {
 		return nil, nil, err
 	}
 	return val, w, nil
@@ -343,7 +365,35 @@ func (c *MetricsRelabelClient) GetValue(ctx context.Context, start, end time.Tim
 	if err := c.replaceValueLabels(val); err != nil {
 		return nil, nil, err
 	}
+	// remove empty metrics after relabeling
+	if val, err = c.removeEmptyMetrics(val); err != nil {
+		return nil, nil, err
+	}
 	return val, w, err
+}
+
+// removeEmptyMetrics removes empty metrics from the model.Vector passed in
+func (c *MetricsRelabelClient) removeEmptyMetrics(a model.Value) (model.Value, error) {
+	switch aTyped := a.(type) {
+	case model.Vector:
+		var res model.Vector
+		for _, item := range aTyped {
+			if item.Metric[model.MetricNameLabel] != "" {
+				res = append(res, item)
+			}
+		}
+		return res, nil
+	case model.Matrix:
+		var res model.Matrix
+		for _, item := range aTyped {
+			if item.Metric[model.MetricNameLabel] != "" {
+				res = append(res, item)
+			}
+		}
+		return res, nil
+	default:
+		return nil, fmt.Errorf("unexpected type %T", a)
+	}
 }
 
 // replaceValueLabels runs the Relabeling across the model.Value passed in
