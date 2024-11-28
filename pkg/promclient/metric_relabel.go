@@ -378,7 +378,8 @@ func (c *MetricsRelabelClient) removeEmptyMetrics(a model.Value) (model.Value, e
 	case model.Vector:
 		var res model.Vector
 		for _, item := range aTyped {
-			if item.Metric[model.MetricNameLabel] != "" {
+			//logrus.Tracef("Checking metric %s:%d", item.Metric, len(item.Metric))
+			if len(item.Metric) > 0 {
 				res = append(res, item)
 			}
 		}
@@ -386,7 +387,7 @@ func (c *MetricsRelabelClient) removeEmptyMetrics(a model.Value) (model.Value, e
 	case model.Matrix:
 		var res model.Matrix
 		for _, item := range aTyped {
-			if item.Metric[model.MetricNameLabel] != "" {
+			if len(item.Metric) > 0 {
 				res = append(res, item)
 			}
 		}
