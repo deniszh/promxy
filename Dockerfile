@@ -1,4 +1,4 @@
-FROM --platform=$BUILDPLATFORM golang:1.21-alpine3.18 as builder
+FROM --platform=$BUILDPLATFORM golang:1.24.1-alpine3.21 AS builder
 
 ARG BUILDPLATFORM
 ARG TARGETARCH
@@ -9,10 +9,11 @@ COPY . /go/src/github.com/jacksontj/promxy
 RUN cd /go/src/github.com/jacksontj/promxy/cmd/promxy && CGO_ENABLED=0 go build -mod=vendor -tags netgo,builtinassets
 RUN cd /go/src/github.com/jacksontj/promxy/cmd/remote_write_exporter && CGO_ENABLED=0 go build -mod=vendor
 
-FROM alpine:3.18.11
-MAINTAINER Thomas Jackson <jacksontj.89@gmail.com>
+FROM alpine:3.21
+LABEL maintainer="Thomas Jackson <jacksontj.89@gmail.com>"
 EXPOSE     8082
 
+RUN apk update --no-cache && apk upgrade --no-cache && rm -rf /var/cache/apk/*
 COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 COPY --from=builder /go/src/github.com/jacksontj/promxy/cmd/promxy/promxy /bin/promxy
 COPY --from=builder /go/src/github.com/jacksontj/promxy/cmd/remote_write_exporter/remote_write_exporter /bin/remote_write_exporter
