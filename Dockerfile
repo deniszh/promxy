@@ -1,4 +1,4 @@
-FROM --platform=$BUILDPLATFORM golang:1.24-alpine3.21 AS builder
+FROM --platform=$BUILDPLATFORM golang:1.24.5-alpine3.22 AS builder
 
 ARG BUILDPLATFORM
 ARG TARGETARCH
@@ -9,7 +9,7 @@ COPY . /go/src/github.com/jacksontj/promxy
 RUN cd /go/src/github.com/jacksontj/promxy/cmd/promxy && CGO_ENABLED=0 go build -mod=vendor -tags netgo,builtinassets
 RUN cd /go/src/github.com/jacksontj/promxy/cmd/remote_write_exporter && CGO_ENABLED=0 go build -mod=vendor
 
-FROM   alpine:3.21.3
+FROM   alpine:3.22.1
 LABEL  org.opencontainers.image.authors="Thomas Jackson <jacksontj.89@gmail.com>"
 EXPOSE 8082
 
